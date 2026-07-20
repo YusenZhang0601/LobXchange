@@ -17,22 +17,12 @@ LobXChange 是一个面向市场微观结构研究的单机交易所与多 Agent
 - 账户账本、冻结余额、风险检查、结算、手续费、持仓和清算相关测试。
 - 事件流、K 线和实时仿真输出。
 - 解耦的 `AgentRuntime + AgentAction + AgentContext` 架构。
-- 5 个真实内置 Agent：
-  - `static_market_maker`
-  - `noise_trader`
-  - `momentum_follower`
-  - `mean_reverter`
-  - `whale_sweeper`
+- 10 种内置与扩展算法机器人工位架构支持：
+  - 基础策略：`static_market_maker`, `noise_trader`, `momentum_follower`, `mean_reverter`, `whale_sweeper`
+  - 高级扩展：`grid_bot`, `funding_arbitrageur`, `liquidation_sniper`, `ofi_momentum`, `hawkes_panic`
 - 固定延迟队列、Agent 私有状态、action/event trace。
 - price impact、PnL/accounting invariant 和 long diagnostic 实验。
 - CSV/JSON/JSONL 研究 bundle 与 pandas/matplotlib 可视化。
-
-尚未实现的 future agent 不会映射或回退到已有策略：
-
-- `dynamic_market_maker`
-- `liquidity_taker`
-- `adversarial_sweeper`
-- `liquidity_withdrawer`
 
 ## 架构
 
@@ -113,6 +103,7 @@ bash scripts/build_cmake.sh
 ## 文档
 
 - [项目概况与架构](docs/PROJECT_OVERVIEW_CN.md)
+- [Web3 与加密货币微观市场交易者生态建模指南](docs/research_reports/web3_market_microstructure_research.md)
 - [CMake 编译指南](docs/BUILD_CN.md)
 - [使用指南](docs/USAGE_CN.md)
 - [GitHub 上传清单](docs/GITHUB_UPLOAD_CN.md)
@@ -134,7 +125,8 @@ python/lobx/               Python 辅助与实时服务
 scripts/                   构建、实验和绘图脚本
 examples/                  示例订单与研究配置
 experiments/               价格冲击配置
-docs/                      设计、构建和使用文档
+docs/                      设计、构建、研究报告与计划文档
+log/                       开发日志与架构追溯记录
 third_party/               最小 vendored 撮合簿依赖
 web/                       实时市场页面
 ```
