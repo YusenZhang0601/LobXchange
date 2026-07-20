@@ -48,6 +48,11 @@ class CryptoExchangeModel(mesa.Model):
         momentum: int = 2,
         mean_reversion: int = 2,
         whales: int = 1,
+        grid_bots: int = 0,
+        funding_arbitrageurs: int = 0,
+        liquidation_snipers: int = 0,
+        ofi_momentums: int = 0,
+        hawkes_panics: int = 0,
         reference_price: int = 100,
     ) -> None:
         super().__init__(rng=seed)
@@ -77,6 +82,21 @@ class CryptoExchangeModel(mesa.Model):
             next_user += 1
         for i in range(whales):
             WhaleSweeperAgent(self, next_user, f"whale_{i}", reference_price)
+            next_user += 1
+        for i in range(grid_bots):
+            GridBotAgent(self, next_user, f"grid_bot_{i}", reference_price)
+            next_user += 1
+        for i in range(funding_arbitrageurs):
+            FundingArbitrageAgent(self, next_user, f"funding_arb_{i}", reference_price)
+            next_user += 1
+        for i in range(liquidation_snipers):
+            LiquidationSniperAgent(self, next_user, f"sniper_{i}", reference_price)
+            next_user += 1
+        for i in range(ofi_momentums):
+            OfiMomentumAgent(self, next_user, f"ofi_mom_{i}", reference_price)
+            next_user += 1
+        for i in range(hawkes_panics):
+            HawkesPanicAgent(self, next_user, f"hawkes_panic_{i}", reference_price)
             next_user += 1
 
         for agent in self.agents:
@@ -237,6 +257,46 @@ class WhaleSweeperAgent(TradingAgent):
         self.submit(side, price, 20, IOC)
 
 
+class GridBotAgent(TradingAgent):
+    kind = "grid_bot"
+
+    def step(self) -> None:
+        # Skeleton placeholder: NOP for now
+        pass
+
+
+class FundingArbitrageAgent(TradingAgent):
+    kind = "funding_arbitrageur"
+
+    def step(self) -> None:
+        # Skeleton placeholder: NOP for now
+        pass
+
+
+class LiquidationSniperAgent(TradingAgent):
+    kind = "liquidation_sniper"
+
+    def step(self) -> None:
+        # Skeleton placeholder: NOP for now
+        pass
+
+
+class OfiMomentumAgent(TradingAgent):
+    kind = "ofi_momentum"
+
+    def step(self) -> None:
+        # Skeleton placeholder: NOP for now
+        pass
+
+
+class HawkesPanicAgent(TradingAgent):
+    kind = "hawkes_panic"
+
+    def step(self) -> None:
+        # Skeleton placeholder: NOP for now
+        pass
+
+
 def run_smoke(args: argparse.Namespace) -> MesaRunSummary:
     model = CryptoExchangeModel(
         seed=args.seed,
@@ -246,6 +306,11 @@ def run_smoke(args: argparse.Namespace) -> MesaRunSummary:
         momentum=args.momentum,
         mean_reversion=args.mean_reversion,
         whales=args.whales,
+        grid_bots=getattr(args, "grid_bots", 0),
+        funding_arbitrageurs=getattr(args, "funding_arbitrageurs", 0),
+        liquidation_snipers=getattr(args, "liquidation_snipers", 0),
+        ofi_momentums=getattr(args, "ofi_momentums", 0),
+        hawkes_panics=getattr(args, "hawkes_panics", 0),
         reference_price=args.reference_price,
     )
     try:
@@ -272,6 +337,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--momentum", type=int, default=2)
     parser.add_argument("--mean-reversion", type=int, default=2)
     parser.add_argument("--whales", type=int, default=1)
+    parser.add_argument("--grid-bots", type=int, default=0)
+    parser.add_argument("--funding-arbitrageurs", type=int, default=0)
+    parser.add_argument("--liquidation-snipers", type=int, default=0)
+    parser.add_argument("--ofi-momentums", type=int, default=0)
+    parser.add_argument("--hawkes-panics", type=int, default=0)
     parser.add_argument("--output")
     return parser
 

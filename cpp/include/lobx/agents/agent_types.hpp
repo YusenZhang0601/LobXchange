@@ -26,6 +26,11 @@ enum class AgentType : std::uint8_t {
   LiquidityTaker = 6,
   AdversarialSweeper = 7,
   LiquidityWithdrawer = 8,
+  GridBot = 9,
+  FundingArbitrageur = 10,
+  LiquidationSniper = 11,
+  OfiMomentum = 12,
+  HawkesPanic = 13,
   Unknown = 255,
 };
 

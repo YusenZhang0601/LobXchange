@@ -20,9 +20,9 @@ int main() {
   ex.set_leverage(20, "SIM-PERP", 5);
   ex.set_leverage(30, "SIM-PERP", 5);
 
-  auto ask = ex.submit_limit("SIM-PERP", 20, 2001, lob::Side::Ask, 100, 10, lob::POST_ONLY, 1);
+  auto ask = ex.submit_limit("SIM-PERP", 20, 2001, lob::Side::Ask, 100, 4, lob::POST_ONLY, 1);
   assert(ask.accepted);
-  assert(ex.balance(20, "USDT").locked == 200);
+  assert(ex.balance(20, "USDT").locked == 80);
 
   auto buy = ex.submit_limit("SIM-PERP", 10, 1001, lob::Side::Bid, 100, 4, lob::IOC, 2);
   assert(buy.accepted);

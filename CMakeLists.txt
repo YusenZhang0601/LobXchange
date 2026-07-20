@@ -38,6 +38,11 @@ set(LOBX_CORE_SOURCES
   cpp/src/agents/builtins/momentum_follower_agent.cpp
   cpp/src/agents/builtins/mean_reverter_agent.cpp
   cpp/src/agents/builtins/whale_sweeper_agent.cpp
+  cpp/src/agents/builtins/grid_bot_agent.cpp
+  cpp/src/agents/builtins/funding_arbitrage_agent.cpp
+  cpp/src/agents/builtins/liquidation_sniper_agent.cpp
+  cpp/src/agents/builtins/ofi_momentum_agent.cpp
+  cpp/src/agents/builtins/hawkes_panic_agent.cpp
   cpp/src/simulation/scenario_config.cpp
   cpp/src/simulation/strategy_metrics.cpp
   cpp/src/simulation/parameter_sweep.cpp

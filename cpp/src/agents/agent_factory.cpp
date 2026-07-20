@@ -1,8 +1,13 @@
 #include "lobx/agents/agent_factory.hpp"
 
+#include "lobx/agents/builtins/funding_arbitrage_agent.hpp"
+#include "lobx/agents/builtins/grid_bot_agent.hpp"
+#include "lobx/agents/builtins/hawkes_panic_agent.hpp"
+#include "lobx/agents/builtins/liquidation_sniper_agent.hpp"
 #include "lobx/agents/builtins/mean_reverter_agent.hpp"
 #include "lobx/agents/builtins/momentum_follower_agent.hpp"
 #include "lobx/agents/builtins/noise_trader_agent.hpp"
+#include "lobx/agents/builtins/ofi_momentum_agent.hpp"
 #include "lobx/agents/builtins/static_market_maker_agent.hpp"
 #include "lobx/agents/builtins/whale_sweeper_agent.hpp"
 
@@ -23,7 +28,7 @@ struct AgentNameSpec {
   bool canonical;
 };
 
-inline constexpr std::array<AgentNameSpec, 14> kAgentNameSpecs{{
+inline constexpr std::array<AgentNameSpec, 19> kAgentNameSpecs{{
     {AgentType::StaticMarketMaker, "static_market_maker", true},
     {AgentType::StaticMarketMaker, "market_maker", false},
     {AgentType::NoiseTrader, "noise_trader", true},
@@ -38,6 +43,11 @@ inline constexpr std::array<AgentNameSpec, 14> kAgentNameSpecs{{
     {AgentType::LiquidityTaker, "taker_sweep", false},
     {AgentType::AdversarialSweeper, "adversarial_sweeper", true},
     {AgentType::LiquidityWithdrawer, "liquidity_withdrawer", true},
+    {AgentType::GridBot, "grid_bot", true},
+    {AgentType::FundingArbitrageur, "funding_arbitrageur", true},
+    {AgentType::LiquidationSniper, "liquidation_sniper", true},
+    {AgentType::OfiMomentum, "ofi_momentum", true},
+    {AgentType::HawkesPanic, "hawkes_panic", true},
 }};
 
 template <typename AgentT>
@@ -66,6 +76,31 @@ struct AgentClassTraits<MeanReverterAgent> {
 template <>
 struct AgentClassTraits<WhaleSweeperAgent> {
   static constexpr AgentType type = AgentType::WhaleSweeper;
+};
+
+template <>
+struct AgentClassTraits<GridBotAgent> {
+  static constexpr AgentType type = AgentType::GridBot;
+};
+
+template <>
+struct AgentClassTraits<FundingArbitrageAgent> {
+  static constexpr AgentType type = AgentType::FundingArbitrageur;
+};
+
+template <>
+struct AgentClassTraits<LiquidationSniperAgent> {
+  static constexpr AgentType type = AgentType::LiquidationSniper;
+};
+
+template <>
+struct AgentClassTraits<OfiMomentumAgent> {
+  static constexpr AgentType type = AgentType::OfiMomentum;
+};
+
+template <>
+struct AgentClassTraits<HawkesPanicAgent> {
+  static constexpr AgentType type = AgentType::HawkesPanic;
 };
 
 template <typename AgentT>
@@ -164,6 +199,11 @@ void register_builtin_agents(AgentFactoryRegistry& registry) {
   register_agent_class<MomentumFollowerAgent>(registry);
   register_agent_class<MeanReverterAgent>(registry);
   register_agent_class<WhaleSweeperAgent>(registry);
+  register_agent_class<GridBotAgent>(registry);
+  register_agent_class<FundingArbitrageAgent>(registry);
+  register_agent_class<LiquidationSniperAgent>(registry);
+  register_agent_class<OfiMomentumAgent>(registry);
+  register_agent_class<HawkesPanicAgent>(registry);
 }
 
 } // namespace lobx::agents
