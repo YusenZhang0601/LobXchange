@@ -1,0 +1,62 @@
+{
+  "market_environment": {
+    "market_symbol": "BTC-USDT",
+    "reference_price": 100,
+    "ticks": 200,
+    "warmup_ticks": 20,
+    "initial_book": [
+      {"side": "bid", "price": 99, "qty": 10},
+      {"side": "bid", "price": 98, "qty": 20},
+      {"side": "ask", "price": 101, "qty": 10},
+      {"side": "ask", "price": 102, "qty": 20}
+    ],
+    "noise_intensity": 0.4,
+    "liquidity_scale": 1.0,
+    "volatility_regime": 1.0,
+    "spread_regime": 1.0
+  },
+  "agent_population": {
+    "seed": 123,
+    "first_user_id": 10,
+    "groups": [
+      {
+        "strategy_type": "market_maker",
+        "count": 8,
+        "name_prefix": "mm",
+        "latency_range": {
+          "order_min": 1,
+          "order_max": 3,
+          "cancel_min": 1,
+          "cancel_max": 3,
+          "market_data_min": 2,
+          "market_data_max": 5,
+          "private_data_min": 2,
+          "private_data_max": 5
+        },
+        "param_ranges": {
+          "bid_px": {"min": 98, "max": 99},
+          "ask_px": {"min": 101, "max": 102},
+          "qty": {"min": 1, "max": 3}
+        }
+      },
+      {
+        "strategy_type": "noise_trader",
+        "count": 12,
+        "name_prefix": "noise",
+        "latency_range": {
+          "order_min": 1,
+          "order_max": 5,
+          "cancel_min": 1,
+          "cancel_max": 5,
+          "market_data_min": 2,
+          "market_data_max": 8,
+          "private_data_min": 2,
+          "private_data_max": 8
+        },
+        "param_ranges": {
+          "seed": {"min": 1, "max": 100000}
+        }
+      }
+    ]
+  }
+}

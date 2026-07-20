@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LOBX Agent Realtime K-Line</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f6f8;
+      --panel: #ffffff;
+      --ink: #20252d;
+      --muted: #657080;
+      --line: #d8dde5;
+      --grid: #edf0f4;
+      --buy: #12845f;
+      --sell: #c23b3b;
+      --accent: #2457a6;
+      --warn: #9a6a17;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+    .app { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+    header {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    h1 { margin: 0; font-size: 18px; line-height: 1.2; }
+    .status { color: var(--muted); font-size: 13px; margin-top: 3px; }
+    .status.live { color: var(--buy); font-weight: 700; }
+    .status.error { color: var(--sell); font-weight: 700; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; justify-content: flex-end; }
+    label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+    input, select {
+      width: 86px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 4px 7px;
+      font: inherit;
+    }
+    .controls select { width: 126px; }
+    button {
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button:disabled { opacity: .55; cursor: default; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 12px;
+      padding: 12px;
+      min-height: 0;
+    }
+    .chart-panel, aside {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-height: 0;
+    }
+    .chart-panel {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: calc(100vh - 92px);
+      overflow: hidden;
+    }
+    .chart-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 11px;
+      border-bottom: 1px solid var(--line);
+    }
+    .legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 12px; }
+    .swatch { width: 10px; height: 10px; display: inline-block; margin-right: 5px; border-radius: 2px; vertical-align: -1px; }
+    .swatch.up { background: var(--buy); }
+    .swatch.down { background: var(--sell); }
+    .chart-tools { display: flex; gap: 8px; align-items: center; }
+    .chart-tools select { width: 104px; }
+    canvas { width: 100%; height: 100%; display: block; }
+    aside {
+      padding: 11px;
+      height: calc(100vh - 92px);
+      overflow: auto;
+    }
+    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px;
+      min-width: 0;
+      background: #fff;
+    }
+    .metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .metric strong { display: block; font-size: 16px; overflow-wrap: anywhere; }
+    .section-title { margin: 14px 0 7px; font-size: 13px; font-weight: 800; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 6px 3px; border-bottom: 1px solid #eef1f4; text-align: right; white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    .buy { color: var(--buy); }
+    .sell { color: var(--sell); }
+    @media (max-width: 980px) {
+      header { grid-template-columns: 1fr; align-items: start; }
+      .controls { justify-content: flex-start; }
+      main { grid-template-columns: 1fr; }
+      .chart-panel { height: 56vh; min-height: 360px; }
+      aside { height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>LOBX Agent Realtime K-Line</h1>
+        <div id="status" class="status">Disconnected</div>
+      </div>
+      <div class="controls">
+        <label>Engine
+          <select id="engine">
+            <option value="cpp" selected>C++ agents</option>
+            <option value="mesa">Mesa Python</option>
+          </select>
+        </label>
+        <label>Steps <input id="steps" type="number" min="0" value="500"></label>
+        <label>Step ms <input id="sleepMs" type="number" min="0" value="60"></label>
+        <label>Seed <input id="seed" type="number" value="42"></label>
+        <label>Makers <input id="makers" type="number" min="0" value="6"></label>
+        <label>Noise <input id="noise" type="number" min="0" value="12"></label>
+        <label>Momentum <input id="momentum" type="number" min="0" value="3"></label>
+        <label>Reversion <input id="meanReversion" type="number" min="0" value="3"></label>
+        <label>Whales <input id="whales" type="number" min="0" value="1"></label>
+        <button id="start" class="primary">Start</button>
+        <button id="stop" disabled>Stop</button>
+      </div>
+    </header>
+    <main>
+      <section class="chart-panel">
+        <div class="chart-bar">
+          <div class="legend">
+            <span><i class="swatch up"></i>Up</span>
+            <span><i class="swatch down"></i>Down</span>
+            <span id="lastLabel">Last --</span>
+          </div>
+          <div class="chart-tools">
+            <label>Interval
+              <select id="interval">
+                <option value="1">1 step</option>
+                <option value="5" selected>5 steps</option>
+                <option value="15">15 steps</option>
+                <option value="60">60 steps</option>
+              </select>
+            </label>
+            <button id="clear">Clear</button>
+          </div>
+        </div>
+        <canvas id="chart"></canvas>
+      </section>
+      <aside>
+        <div class="metrics">
+          <div class="metric"><span>Step</span><strong id="mStep">0</strong></div>
+          <div class="metric"><span>Last</span><strong id="mLast">--</strong></div>
+          <div class="metric"><span>Best Bid</span><strong id="mBid">--</strong></div>
+          <div class="metric"><span>Best Ask</span><strong id="mAsk">--</strong></div>
+          <div class="metric"><span>Trades</span><strong id="mTrades">0</strong></div>
+          <div class="metric"><span>Rejected</span><strong id="mRejected">0</strong></div>
+          <div class="metric"><span>Mean Spread</span><strong id="mMeanSpread">--</strong></div>
+          <div class="metric"><span>Agents</span><strong id="mAgents">0</strong></div>
+        </div>
+        <div class="section-title">Agent Mix</div>
+        <table><thead><tr><th>Type</th><th>Count</th></tr></thead><tbody id="agentMix"></tbody></table>
+        <div class="section-title">Recent Trades</div>
+        <table><thead><tr><th>Step</th><th>Price</th><th>Qty</th><th>Side</th></tr></thead><tbody id="tradeRows"></tbody></table>
+        <div class="section-title">Recent Candles</div>
+        <table><thead><tr><th>Open</th><th>O</th><th>H</th><th>L</th><th>C</th><th>V</th></tr></thead><tbody id="candleRows"></tbody></table>
+      </aside>
+    </main>
+  </div>
+  <script>
+    (() => {
+      const canvas = document.getElementById('chart');
+      const ctx = canvas.getContext('2d');
+      const intervals = [1, 5, 15, 60];
+      const candles = new Map(intervals.map(v => [v, new Map()]));
+      const trades = [];
+      let source = null;
+      let lastStats = {};
+      let renderPending = false;
+
+      const $ = id => document.getElementById(id);
+      const num = id => Number($(id).value || 0);
+      const fmt = value => Number.isFinite(Number(value)) ? Number(value).toLocaleString('en-US') : '--';
+      const activeInterval = () => Number($('interval').value);
+
+      function setStatus(text, cls = '') {
+        $('status').textContent = text;
+        $('status').className = `status ${cls}`;
+      }
+
+      function query() {
+        const p = new URLSearchParams({
+          engine: $('engine').value,
+          steps: String(num('steps')),
+          sleep_ms: String(num('sleepMs')),
+          seed: String(num('seed')),
+          reference_price: '100',
+          makers: String(num('makers')),
+          noise: String(num('noise')),
+          momentum: String(num('momentum')),
+          mean_reversion: String(num('meanReversion')),
+          whales: String(num('whales')),
+          restart: '1',
+        });
+        return p.toString();
+      }
+
+      function connect() {
+        if (source) source.close();
+        clearData();
+        setStatus('Connecting');
+        source = new EventSource(`/events?${query()}`);
+        source.onopen = () => {
+          setStatus('Live', 'live');
+          $('start').disabled = true;
+          $('stop').disabled = false;
+        };
+        source.onmessage = event => handleMessage(JSON.parse(event.data));
+        source.onerror = () => {
+          setStatus('Disconnected');
+          $('start').disabled = false;
+          $('stop').disabled = true;
+          if (source) source.close();
+          source = null;
+        };
+      }
+
+      function stop() {
+        fetch('/api/stop', { method: 'POST' }).catch(() => {});
+        if (source) source.close();
+        source = null;
+        $('start').disabled = false;
+        $('stop').disabled = true;
+        setStatus('Stopped');
+      }
+
+      function clearData() {
+        for (const map of candles.values()) map.clear();
+        trades.length = 0;
+        lastStats = {};
+        $('tradeRows').innerHTML = '';
+        $('candleRows').innerHTML = '';
+        requestRender();
+      }
+
+      function handleMessage(message) {
+        if (message.type === 'status') {
+          setStatus('Stopped');
+          $('start').disabled = false;
+          $('stop').disabled = true;
+          return;
+        }
+        if (message.type !== 'batch') return;
+        for (const item of message.events || []) {
+          if (item.type === 'trade') {
+            trades.unshift(item);
+            if (trades.length > 80) trades.pop();
+          } else if (item.type === 'candle') {
+            const interval = Number(item.interval_steps);
+            const store = candles.get(interval);
+            if (store) {
+              store.set(Number(item.open_step), item);
+              while (store.size > 260) store.delete(Math.min(...store.keys()));
+            }
+          } else if (item.type === 'stats') {
+            lastStats = item;
+          } else if (item.type === 'agent_mix') {
+            renderAgentMix(item.agent_types || {});
+          } else if (item.type === 'error') {
+            setStatus(item.reason || 'Error', 'error');
+          }
+        }
+        renderStats();
+        renderTables();
+        requestRender();
+      }
+
+      function renderStats() {
+        $('mStep').textContent = fmt(lastStats.step || 0);
+        $('mLast').textContent = fmt(lastStats.last_price);
+        $('mBid').textContent = fmt(lastStats.best_bid);
+        $('mAsk').textContent = fmt(lastStats.best_ask);
+        $('mTrades').textContent = fmt(lastStats.trade_count || 0);
+        $('mRejected').textContent = fmt(lastStats.rejected_orders || 0);
+        $('mMeanSpread').textContent = Number.isFinite(Number(lastStats.mean_spread)) ? Number(lastStats.mean_spread).toFixed(2) : '--';
+        $('mAgents').textContent = fmt(lastStats.agent_count || 0);
+        $('lastLabel').textContent = `Last ${fmt(lastStats.last_price)}`;
+      }
+
+      function renderAgentMix(mix) {
+        $('agentMix').innerHTML = Object.entries(mix)
+          .map(([name, count]) => `<tr><td>${escapeHtml(name)}</td><td>${fmt(count)}</td></tr>`)
+          .join('');
+      }
+
+      function renderTables() {
+        $('tradeRows').innerHTML = trades.slice(0, 18).map(t => {
+          const side = t.liquidity_side === 'BID' ? 'sell' : 'buy';
+          return `<tr><td>${fmt(t.step)}</td><td>${fmt(t.price)}</td><td>${fmt(t.qty)}</td><td class="${side}">${side.toUpperCase()}</td></tr>`;
+        }).join('');
+        const rows = Array.from((candles.get(activeInterval()) || new Map()).values()).slice(-16).reverse();
+        $('candleRows').innerHTML = rows.map(c => (
+          `<tr><td>${fmt(c.open_step)}</td><td>${fmt(c.open)}</td><td>${fmt(c.high)}</td><td>${fmt(c.low)}</td><td>${fmt(c.close)}</td><td>${fmt(c.volume)}</td></tr>`
+        )).join('');
+      }
+
+      function requestRender() {
+        if (renderPending) return;
+        renderPending = true;
+        requestAnimationFrame(() => {
+          renderPending = false;
+          drawChart();
+        });
+      }
+
+      function drawChart() {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const width = Math.max(1, Math.floor(rect.width * dpr));
+        const height = Math.max(1, Math.floor(rect.height * dpr));
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, rect.width, rect.height);
+
+        const data = Array.from((candles.get(activeInterval()) || new Map()).values()).slice(-100);
+        const left = 54;
+        const right = 64;
+        const top = 16;
+        const bottom = 44;
+        const volumeHeight = 64;
+        const priceBottom = rect.height - bottom - volumeHeight;
+        const plotW = Math.max(1, rect.width - left - right);
+        const priceH = Math.max(1, priceBottom - top);
+        const volTop = priceBottom + 14;
+        const volH = Math.max(1, rect.height - bottom - volTop);
+
+        drawGrid(left, top, plotW, priceH, rect.width, rect.height);
+        if (!data.length) {
+          ctx.fillStyle = '#657080';
+          ctx.font = '13px ui-sans-serif, system-ui';
+          ctx.fillText('Waiting for robot trades', left, top + 22);
+          return;
+        }
+
+        const highs = data.map(c => Number(c.high));
+        const lows = data.map(c => Number(c.low));
+        let minP = Math.min(...lows);
+        let maxP = Math.max(...highs);
+        if (minP === maxP) {
+          minP -= 1;
+          maxP += 1;
+        }
+        const pad = Math.max(1, (maxP - minP) * 0.08);
+        minP -= pad;
+        maxP += pad;
+        const maxV = Math.max(1, ...data.map(c => Number(c.volume)));
+        const stepW = plotW / Math.max(1, data.length);
+        const bodyW = Math.max(3, Math.min(14, stepW * 0.62));
+        const y = price => top + ((maxP - price) / (maxP - minP)) * priceH;
+        const vy = vol => volTop + (1 - vol / maxV) * volH;
+
+        ctx.font = '11px ui-sans-serif, system-ui';
+        ctx.fillStyle = '#657080';
+        for (let i = 0; i <= 4; i++) {
+          const price = maxP - ((maxP - minP) * i / 4);
+          const yy = top + priceH * i / 4;
+          ctx.fillText(Math.round(price).toString(), rect.width - right + 10, yy + 4);
+        }
+
+        data.forEach((c, i) => {
+          const x = left + i * stepW + stepW / 2;
+          const open = Number(c.open);
+          const close = Number(c.close);
+          const high = Number(c.high);
+          const low = Number(c.low);
+          const up = close >= open;
+          const color = up ? '#12845f' : '#c23b3b';
+          ctx.strokeStyle = color;
+          ctx.fillStyle = color;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, y(high));
+          ctx.lineTo(x, y(low));
+          ctx.stroke();
+          const bodyTop = Math.min(y(open), y(close));
+          const bodyHeight = Math.max(2, Math.abs(y(open) - y(close)));
+          ctx.fillRect(x - bodyW / 2, bodyTop, bodyW, bodyHeight);
+          const vTop = vy(Number(c.volume));
+          ctx.globalAlpha = 0.26;
+          ctx.fillRect(x - bodyW / 2, vTop, bodyW, volTop + volH - vTop);
+          ctx.globalAlpha = 1;
+        });
+
+        ctx.fillStyle = '#657080';
+        ctx.fillText(`interval ${activeInterval()} step`, left, rect.height - 16);
+        const last = data[data.length - 1];
+        ctx.fillText(`close ${fmt(last.close)}`, rect.width - right - 8, rect.height - 16);
+      }
+
+      function drawGrid(left, top, plotW, priceH, width, height) {
+        ctx.strokeStyle = '#edf0f4';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+          const y = top + priceH * i / 4;
+          ctx.beginPath();
+          ctx.moveTo(left, y);
+          ctx.lineTo(width - 64, y);
+          ctx.stroke();
+        }
+        for (let i = 0; i <= 6; i++) {
+          const x = left + plotW * i / 6;
+          ctx.beginPath();
+          ctx.moveTo(x, top);
+          ctx.lineTo(x, height - 44);
+          ctx.stroke();
+        }
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      }
+
+      $('start').addEventListener('click', connect);
+      $('stop').addEventListener('click', stop);
+      $('clear').addEventListener('click', clearData);
+      $('interval').addEventListener('change', () => {
+        renderTables();
+        requestRender();
+      });
+      window.addEventListener('resize', requestRender);
+      requestRender();
+      setTimeout(connect, 0);
+    })();
+  </script>
+</body>
+</html>

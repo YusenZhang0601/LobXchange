@@ -1,0 +1,63 @@
+{
+  "market_environment": {
+    "market_symbol": "BTC-USDT",
+    "reference_price": 100,
+    "ticks": 300,
+    "warmup_ticks": 30,
+    "initial_book": [
+      {"side": "bid", "price": 99, "qty": 5},
+      {"side": "ask", "price": 101, "qty": 5}
+    ],
+    "noise_intensity": 0.6,
+    "liquidity_scale": 0.8,
+    "volatility_regime": 1.2,
+    "spread_regime": 1.2
+  },
+  "agent_population": {
+    "seed": 789,
+    "first_user_id": 10,
+    "groups": [
+      {
+        "strategy_type": "momentum",
+        "count": 6,
+        "name_prefix": "mom",
+        "latency_range": {
+          "order_min": 1,
+          "order_max": 4,
+          "cancel_min": 1,
+          "cancel_max": 4,
+          "market_data_min": 2,
+          "market_data_max": 6,
+          "private_data_min": 2,
+          "private_data_max": 6
+        },
+        "param_ranges": {
+          "side": {"min": 0, "max": 0},
+          "target_qty": {"min": 1, "max": 1},
+          "limit_price": {"min": 101, "max": 102},
+          "max_avg_price": {"min": 101, "max": 102}
+        }
+      },
+      {
+        "strategy_type": "mean_reversion",
+        "count": 6,
+        "name_prefix": "mr",
+        "latency_range": {
+          "order_min": 1,
+          "order_max": 4,
+          "cancel_min": 1,
+          "cancel_max": 4,
+          "market_data_min": 2,
+          "market_data_max": 6,
+          "private_data_min": 2,
+          "private_data_max": 6
+        },
+        "param_ranges": {
+          "bid_px": {"min": 98, "max": 99},
+          "ask_px": {"min": 101, "max": 102},
+          "qty": {"min": 1, "max": 2}
+        }
+      }
+    ]
+  }
+}

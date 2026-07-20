@@ -1,0 +1,13 @@
+{
+  "scenario": "baseline_liquid_market",
+  "seed": 42,
+  "agent_count": 20,
+  "steps": 30,
+  "agents": {
+    "static_market_maker": 0.70,
+    "noise_trader": 0.30,
+    "momentum_follower": 0.0,
+    "mean_reverter": 0.0,
+    "whale_sweeper": 0.0
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "market_environment": {
+    "market_symbol": "BTC-USDT",
+    "reference_price": 100,
+    "ticks": 200,
+    "warmup_ticks": 20,
+    "initial_book": [
+      {"side": "bid", "price": 99, "qty": 1},
+      {"side": "ask", "price": 101, "qty": 1}
+    ],
+    "noise_intensity": 0.8,
+    "liquidity_scale": 0.25,
+    "volatility_regime": 1.5,
+    "spread_regime": 2.0
+  },
+  "agent_population": {
+    "seed": 456,
+    "first_user_id": 10,
+    "groups": [
+      {
+        "strategy_type": "market_maker",
+        "count": 2,
+        "name_prefix": "thin_mm",
+        "latency_range": {
+          "order_min": 2,
+          "order_max": 6,
+          "cancel_min": 2,
+          "cancel_max": 6,
+          "market_data_min": 4,
+          "market_data_max": 10,
+          "private_data_min": 3,
+          "private_data_max": 8
+        },
+        "param_ranges": {
+          "bid_px": {"min": 97, "max": 99},
+          "ask_px": {"min": 101, "max": 103},
+          "qty": {"min": 1, "max": 1}
+        }
+      },
+      {
+        "strategy_type": "adversarial_sweeper",
+        "count": 4,
+        "name_prefix": "sweep",
+        "latency_range": {
+          "order_min": 1,
+          "order_max": 3,
+          "cancel_min": 1,
+          "cancel_max": 3,
+          "market_data_min": 2,
+          "market_data_max": 5,
+          "private_data_min": 2,
+          "private_data_max": 5
+        },
+        "param_ranges": {
+          "side": {"min": 0, "max": 0},
+          "target_qty": {"min": 1, "max": 1},
+          "limit_price": {"min": 101, "max": 103},
+          "max_avg_price": {"min": 101, "max": 103}
+        }
+      }
+    ]
+  }
+}

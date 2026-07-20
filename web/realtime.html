@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LOBX Realtime Trading Simulator</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #d7dde5;
+      --soft: #eef2f7;
+      --buy: #0f9f6e;
+      --sell: #d64545;
+      --accent: #2563eb;
+      --warn: #b7791f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+    .app { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    .status { font-size: 13px; color: var(--muted); }
+    .status.live { color: var(--buy); font-weight: 700; }
+    .status.error { color: var(--sell); font-weight: 700; }
+    .controls, .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+    input, select {
+      width: 82px;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+    }
+    select { width: 90px; }
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      min-height: 34px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+    button.buy { background: var(--buy); border-color: var(--buy); color: white; }
+    button.sell { background: var(--sell); border-color: var(--sell); color: white; }
+    button:disabled { opacity: .55; cursor: default; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 430px;
+      gap: 14px;
+      padding: 14px;
+      min-height: 0;
+      align-items: start;
+    }
+    .chart-wrap, aside, footer, .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .chart-wrap { height: clamp(340px, 48vh, 520px); min-height: 0; display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+    .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    .legend { display: flex; gap: 12px; color: var(--muted); font-size: 13px; }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+    .up { background: var(--buy); }
+    .down { background: var(--sell); }
+    canvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+    canvas.is-dragging { cursor: grabbing; }
+    aside { padding: 12px; overflow: auto; min-height: 0; max-height: calc(100vh - 108px); }
+    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .metric { border: 1px solid var(--line); border-radius: 7px; padding: 8px; min-width: 0; }
+    .metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .metric strong { display: block; font-size: 16px; overflow-wrap: anywhere; }
+    .panel { padding: 10px; margin-top: 12px; }
+    .panel h2 { margin: 0 0 10px; font-size: 14px; }
+    .trade-form { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; align-items: end; }
+    .trade-form label { display: grid; align-items: start; gap: 4px; }
+    .trade-form input, .trade-form select { width: 100%; }
+    .trade-actions { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 8px; }
+    .table-title { margin: 14px 0 8px; font-weight: 700; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { text-align: right; padding: 6px 4px; border-bottom: 1px solid #eef1f5; white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    .accounts td, .accounts th { font-size: 11px; }
+    .badge { display: inline-block; border-radius: 999px; padding: 2px 7px; background: var(--soft); color: var(--muted); font-size: 11px; }
+    .badge.player { color: #fff; background: var(--accent); }
+    .badge.buy { color: #fff; background: var(--buy); }
+    .badge.sell { color: #fff; background: var(--sell); }
+    .message { min-height: 18px; margin-top: 8px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+    .message.error { color: var(--sell); }
+    .message.ok { color: var(--buy); }
+    footer { margin: 0 14px 14px; padding: 8px 12px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 1040px) {
+      header { align-items: flex-start; flex-direction: column; }
+      main { grid-template-columns: 1fr; grid-template-rows: auto auto; }
+      .chart-wrap { height: min(420px, 48vh); }
+      aside { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>LOBX Realtime Trading Simulator</h1>
+      <div id="status" class="status">Disconnected</div>
+    </div>
+    <div class="controls">
+      <label>Steps <input id="steps" type="number" min="0" value="0"></label>
+      <label>Interval ms <input id="sleepMs" type="number" min="0" value="50"></label>
+      <label>Speed x <input id="speedX" type="number" min="0" step="0.1" value="100"></label>
+      <label>Seed <input id="seed" type="number" min="1" value="42"></label>
+      <button id="start" class="primary">Start</button>
+      <button id="stop" disabled>Stop</button>
+    </div>
+  </header>
+  <main>
+    <section class="chart-wrap">
+      <div class="chart-head">
+        <div class="legend"><span><i class="dot up"></i>Up candle</span><span><i class="dot down"></i>Down candle</span><span class="badge buy">Buy mark</span><span class="badge sell">Sell mark</span></div>
+        <div class="row">
+          <label>Interval <select id="intervalSelect"><option value="1000000000">1s</option><option value="60000000000" selected>1m</option><option value="900000000000">15m</option><option value="3600000000000">1h</option><option value="86400000000000">1d</option></select></label>
+          <div id="priceLabel" class="status">last: --</div>
+          <button id="resetView">Auto View</button>
+        </div>
+      </div>
+      <canvas id="chart"></canvas>
+    </section>
+    <aside>
+      <div class="metric-grid">
+        <div class="metric"><span>Step</span><strong id="mStep">0</strong></div>
+        <div class="metric"><span>Last</span><strong id="mLast">--</strong></div>
+        <div class="metric"><span>Trades</span><strong id="mTrades">0</strong></div>
+        <div class="metric"><span>Candles</span><strong id="mCandles">0</strong></div>
+        <div class="metric"><span>Rejected</span><strong id="mRejected">0</strong></div>
+        <div class="metric"><span>RSS KB</span><strong id="mRss">0</strong></div>
+        <div class="metric"><span>Accounts</span><strong id="mAccounts">0</strong></div>
+        <div class="metric"><span>Stored</span><strong id="mStored">0</strong></div>
+      </div>
+
+      <section class="panel">
+        <h2>Player Order Ticket</h2>
+        <div class="trade-form">
+          <label>Type <select id="orderType"><option value="LIMIT">LIMIT</option><option value="MARKET">MARKET</option></select></label>
+          <label>Side <select id="orderSide"><option value="BUY">BUY</option><option value="SELL">SELL</option></select></label>
+          <label>Price <input id="orderPrice" type="number" min="1" value="1000"></label>
+          <label>Qty <input id="orderQty" type="number" min="1" value="10"></label>
+          <label>Vol bps <input id="orderVolBps" type="number" min="0" value="120"></label>
+          <div class="trade-actions">
+            <button id="submitOrder" class="primary">Send Order</button>
+            <button id="quickBuy" class="buy">Limit Buy +20</button>
+            <button id="quickSell" class="sell">Limit Sell -20</button>
+            <button id="marketBuy" class="buy">Market Buy</button>
+            <button id="marketSell" class="sell">Market Sell</button>
+          </div>
+        </div>
+        <div id="orderMessage" class="message">Player user id: 9000. Initial funds: 1,000,000 USDT and 0 SIM.</div>
+      </section>
+
+      <div class="table-title">Player Balance</div>
+      <table><thead><tr><th>Asset</th><th>Total</th><th>Free</th><th>Locked</th></tr></thead><tbody id="playerBalance"></tbody></table>
+
+      <div class="table-title">Player PnL</div>
+      <div class="metric-grid">
+        <div class="metric"><span>Equity</span><strong id="pEquity">--</strong></div>
+        <div class="metric"><span>PnL</span><strong id="pPnl">--</strong></div>
+        <div class="metric"><span>PnL %</span><strong id="pPnlPct">--</strong></div>
+      </div>
+
+      <div class="table-title" id="accountTableTitle">Accounts</div>
+      <table class="accounts"><thead><tr><th>User</th><th>Role</th><th>USDT</th><th>SIM</th></tr></thead><tbody id="accounts"></tbody></table>
+
+      <div class="table-title">Order Reports</div>
+      <table><thead><tr><th>Source</th><th>Type</th><th>Side</th><th>Px</th><th>Qty</th><th>Fill</th></tr></thead><tbody id="orders"></tbody></table>
+
+      <div class="table-title">Recent Trades</div>
+      <table><thead><tr><th>Time</th><th>Price</th><th>Qty</th></tr></thead><tbody id="trades"></tbody></table>
+
+      <div class="table-title" id="candleTableTitle">Recent Candles</div>
+      <table><thead><tr><th>Time</th><th>O</th><th>H</th><th>L</th><th>C</th><th>V</th></tr></thead><tbody id="candles"></tbody></table>
+    </aside>
+  </main>
+  <footer>Events are produced by the C++ matching engine. Bots, fixed strategy users, and the Player account all trade on the same SIM-USDT order book.</footer>
+</div>
+<script>
+(() => {
+  const PLAYER_ID = 9000;
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+  const startBtn = document.getElementById('start');
+  const stopBtn = document.getElementById('stop');
+  const INTERVALS = [
+    {ns: 1000000000, label: '1s'},
+    {ns: 60000000000, label: '1m'},
+    {ns: 900000000000, label: '15m'},
+    {ns: 3600000000000, label: '1h'},
+    {ns: 86400000000000, label: '1d'}
+  ];
+  const INITIAL_MARK_PRICE = 1000;
+  const candlesByInterval = new Map(INTERVALS.map(i => [i.ns, []]));
+  const trades = [];
+  const markers = [];
+  const orders = [];
+  const accounts = new Map();
+  let source = null;
+  let lastStats = {};
+  let lastStore = {};
+  const TABLE_RENDER_MS = 250;
+  let renderQueued = false;
+  let chartDirty = false;
+  let statsDirty = false;
+  let tablesDirty = false;
+  let tableTimer = null;
+  let lastTableRender = 0;
+
+  const $ = id => document.getElementById(id);
+  const fmt = v => Number.isFinite(Number(v)) ? Number(v).toLocaleString('en-US') : '--';
+  const selectedInterval = () => Number($('intervalSelect').value);
+  const selectedIntervalLabel = () => INTERVALS.find(i => i.ns === selectedInterval())?.label || 'custom';
+  const selectedCandles = () => candlesByInterval.get(selectedInterval()) || [];
+  const lastPrice = () => Number(lastStats.last_price || selectedCandles().at(-1)?.close || $('orderPrice').value || INITIAL_MARK_PRICE);
+
+  function requestRender({chart = false, stats = false, tables = false} = {}) {
+    chartDirty = chartDirty || chart;
+    statsDirty = statsDirty || stats;
+    tablesDirty = tablesDirty || tables;
+    if (!renderQueued) {
+      renderQueued = true;
+      requestAnimationFrame(flushRender);
+    }
+  }
+
+  function flushRender(now) {
+    renderQueued = false;
+    if (chartDirty) {
+      chartDirty = false;
+      draw();
+    }
+    if (statsDirty) {
+      statsDirty = false;
+      renderStats();
+    }
+    if (tablesDirty) {
+      const elapsed = now - lastTableRender;
+      if (elapsed >= TABLE_RENDER_MS) {
+        tablesDirty = false;
+        lastTableRender = now;
+        renderTables();
+      } else if (!tableTimer) {
+        tableTimer = setTimeout(() => {
+          tableTimer = null;
+          requestRender();
+        }, TABLE_RENDER_MS - elapsed);
+      }
+    }
+  }
+
+  const chartPad = () => {
+    const dpr = window.devicePixelRatio || 1;
+    return {left: 54 * dpr, right: 18 * dpr, top: 18 * dpr, bottom: 34 * dpr};
+  };
+  const chartView = {
+    manual: false,
+    start: 0,
+    end: 0,
+    min: 0,
+    max: 0,
+    dragging: false,
+    pointerId: null,
+    dragX: 0,
+    dragY: 0,
+    dragStart: 0,
+    dragEnd: 0,
+    dragMin: 0,
+    dragMax: 0
+  };
+
+  function resetChartView() {
+    chartView.manual = false;
+    chartView.start = 0;
+    chartView.end = 0;
+    chartView.min = 0;
+    chartView.max = 0;
+    draw();
+  }
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+    canvas.height = Math.max(260, Math.floor(rect.height * dpr));
+    draw();
+  }
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = 'status ' + (cls || '');
+  }
+
+  function plotBox() {
+    const pad = chartPad();
+    return {
+      left: pad.left,
+      right: canvas.width - pad.right,
+      top: pad.top,
+      bottom: canvas.height - pad.bottom,
+      width: Math.max(1, canvas.width - pad.left - pad.right),
+      height: Math.max(1, canvas.height - pad.top - pad.bottom)
+    };
+  }
+
+  function chartPoint(ev) {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    return {x: (ev.clientX - rect.left) * dpr, y: (ev.clientY - rect.top) * dpr};
+  }
+
+  function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+  }
+
+  function autoXRange(data, interval) {
+    const last = data.at(-1);
+    const end = last ? last.open_time_ns + interval : interval;
+    const slots = Math.max(20, Math.min(180, data.length || 20));
+    return {start: end - slots * interval, end};
+  }
+
+  function candlesInRange(data, start, end) {
+    return data.filter(c => c.close_time_ns >= start && c.open_time_ns <= end);
+  }
+
+  function autoYRange(data, start, end) {
+    const visible = candlesInRange(data, start, end);
+    const source = visible.length ? visible : data.slice(-180);
+    let min = Infinity;
+    let max = -Infinity;
+    for (const c of source) {
+      min = Math.min(min, c.low);
+      max = Math.max(max, c.high);
+    }
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      min = INITIAL_MARK_PRICE - 1;
+      max = INITIAL_MARK_PRICE + 1;
+    }
+    if (min === max) { min -= 1; max += 1; }
+    const pad = Math.max(1, (max - min) * 0.08);
+    return {min: min - pad, max: max + pad};
+  }
+
+  function currentChartRange() {
+    const data = selectedCandles();
+    const interval = selectedInterval();
+    if (!data.length) return null;
+    if (!chartView.manual || chartView.end <= chartView.start || chartView.max <= chartView.min) {
+      const x = autoXRange(data, interval);
+      const y = autoYRange(data, x.start, x.end);
+      return {...x, ...y};
+    }
+    return {start: chartView.start, end: chartView.end, min: chartView.min, max: chartView.max};
+  }
+
+  function setManualRange(range) {
+    chartView.manual = true;
+    chartView.start = range.start;
+    chartView.end = range.end;
+    chartView.min = range.min;
+    chartView.max = range.max;
+  }
+
+  function draw() {
+    const w = canvas.width;
+    const h = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    const box = plotBox();
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#e5e9ef';
+    ctx.lineWidth = Math.max(1, dpr);
+    for (let i = 0; i <= 5; i++) {
+      const y = box.top + box.height * i / 5;
+      ctx.beginPath(); ctx.moveTo(box.left, y); ctx.lineTo(box.right, y); ctx.stroke();
+    }
+    for (let i = 0; i <= 6; i++) {
+      const x = box.left + box.width * i / 6;
+      ctx.beginPath(); ctx.moveTo(x, box.top); ctx.lineTo(x, box.bottom); ctx.stroke();
+    }
+    const interval = selectedInterval();
+    const allData = selectedCandles();
+    if (!allData.length) {
+      ctx.fillStyle = '#6b7280';
+      ctx.font = `${14 * dpr}px sans-serif`;
+      ctx.fillText('Waiting for candle data...', box.left, box.top + 24 * dpr);
+      return;
+    }
+    const range = currentChartRange();
+    if (!range) return;
+    const spanX = Math.max(interval, range.end - range.start);
+    const spanY = Math.max(1, range.max - range.min);
+    const xFor = ts => box.left + (ts - range.start) / spanX * box.width;
+    const yFor = price => box.top + (range.max - price) / spanY * box.height;
+    const data = candlesInRange(allData, range.start, range.end);
+    if (!data.length) {
+      ctx.fillStyle = '#6b7280';
+      ctx.font = `${14 * dpr}px sans-serif`;
+      ctx.fillText('No candles in view', box.left, box.top + 24 * dpr);
+    }
+    const bodyW = Math.max(2 * dpr, Math.min(12 * dpr, (interval / spanX) * box.width * 0.62));
+    const xByOpen = new Map();
+    data.forEach(c => {
+      const x = xFor(c.open_time_ns + interval / 2);
+      xByOpen.set(c.open_time_ns, x);
+      const yH = yFor(c.high), yL = yFor(c.low), yO = yFor(c.open), yC = yFor(c.close);
+      const up = c.close >= c.open;
+      ctx.strokeStyle = up ? '#0f9f6e' : '#d64545';
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.beginPath(); ctx.moveTo(x, yH); ctx.lineTo(x, yL); ctx.stroke();
+      const top = Math.min(yO, yC);
+      const height = Math.max(2 * dpr, Math.abs(yC - yO));
+      ctx.fillRect(x - bodyW / 2, top, bodyW, height);
+    });
+    markers.slice(-500).forEach(m => {
+      const bucket = Math.floor(m.ts / interval) * interval;
+      const x = xByOpen.get(bucket) ?? xFor(bucket + interval / 2);
+      if (x < box.left || x > box.right) return;
+      const y = yFor(m.price);
+      if (y < box.top - 12 * dpr || y > box.bottom + 12 * dpr) return;
+      ctx.fillStyle = m.side === 'BUY' ? '#0f9f6e' : '#d64545';
+      ctx.beginPath();
+      if (m.side === 'BUY') {
+        ctx.moveTo(x, y - 10 * dpr); ctx.lineTo(x - 5 * dpr, y); ctx.lineTo(x + 5 * dpr, y); ctx.closePath();
+      } else {
+        ctx.moveTo(x, y + 10 * dpr); ctx.lineTo(x - 5 * dpr, y); ctx.lineTo(x + 5 * dpr, y); ctx.closePath();
+      }
+      ctx.fill();
+    });
+    ctx.fillStyle = '#6b7280';
+    ctx.font = `${11 * dpr}px sans-serif`;
+    for (let i = 0; i <= 5; i++) {
+      const price = range.max - spanY * i / 5;
+      const y = box.top + box.height * i / 5;
+      ctx.fillText(String(Math.round(price)), 8 * dpr, y + 4 * dpr);
+    }
+  }
+
+  function beginChartDrag(ev) {
+    if (ev.button !== undefined && ev.button !== 0) return;
+    const range = currentChartRange();
+    if (!range) return;
+    const p = chartPoint(ev);
+    chartView.dragging = true;
+    chartView.pointerId = ev.pointerId;
+    chartView.dragX = p.x;
+    chartView.dragY = p.y;
+    chartView.dragStart = range.start;
+    chartView.dragEnd = range.end;
+    chartView.dragMin = range.min;
+    chartView.dragMax = range.max;
+    setManualRange(range);
+    canvas.classList.add('is-dragging');
+    canvas.setPointerCapture?.(ev.pointerId);
+    ev.preventDefault();
+  }
+
+  function moveChartDrag(ev) {
+    if (!chartView.dragging || chartView.pointerId !== ev.pointerId) return;
+    const p = chartPoint(ev);
+    const box = plotBox();
+    const dx = p.x - chartView.dragX;
+    const dy = p.y - chartView.dragY;
+    const spanX = chartView.dragEnd - chartView.dragStart;
+    const spanY = chartView.dragMax - chartView.dragMin;
+    const shiftX = dx / box.width * spanX;
+    const shiftY = dy / box.height * spanY;
+    setManualRange({
+      start: chartView.dragStart - shiftX,
+      end: chartView.dragEnd - shiftX,
+      min: chartView.dragMin + shiftY,
+      max: chartView.dragMax + shiftY
+    });
+    draw();
+    ev.preventDefault();
+  }
+
+  function endChartDrag(ev) {
+    if (!chartView.dragging || chartView.pointerId !== ev.pointerId) return;
+    chartView.dragging = false;
+    chartView.pointerId = null;
+    canvas.classList.remove('is-dragging');
+    canvas.releasePointerCapture?.(ev.pointerId);
+    ev.preventDefault();
+  }
+
+  function zoomChart(ev) {
+    const range = currentChartRange();
+    if (!range) return;
+    const box = plotBox();
+    const p = chartPoint(ev);
+    const px = clamp(p.x, box.left, box.right);
+    const py = clamp(p.y, box.top, box.bottom);
+    const spanX = Math.max(selectedInterval(), range.end - range.start);
+    const spanY = Math.max(1, range.max - range.min);
+    const factor = clamp(Math.exp(ev.deltaY * 0.0015), 0.25, 4);
+    const minSpanX = selectedInterval() * 5;
+    const maxSpanX = selectedInterval() * 2000;
+    const nextSpanX = clamp(spanX * factor, minSpanX, maxSpanX);
+    const nextSpanY = Math.max(1, spanY * factor);
+    const focusTime = range.start + (px - box.left) / box.width * spanX;
+    const focusPrice = range.max - (py - box.top) / box.height * spanY;
+    const xRatio = (focusTime - range.start) / spanX;
+    const topRatio = (range.max - focusPrice) / spanY;
+    const nextStart = focusTime - xRatio * nextSpanX;
+    const nextMax = focusPrice + topRatio * nextSpanY;
+    setManualRange({
+      start: nextStart,
+      end: nextStart + nextSpanX,
+      min: nextMax - nextSpanY,
+      max: nextMax
+    });
+    draw();
+    ev.preventDefault();
+  }
+
+  function roleBadge(role) {
+    const cls = role === 'player' ? 'player' : '';
+    return `<span class="badge ${cls}">${role}</span>`;
+  }
+
+  function upsertCandle(candle) {
+    const interval = Number(candle.interval_ns);
+    if (!candlesByInterval.has(interval)) candlesByInterval.set(interval, []);
+    const arr = candlesByInterval.get(interval);
+    const last = arr.at(-1);
+    if (last && last.open_time_ns === candle.open_time_ns) {
+      arr[arr.length - 1] = candle;
+    } else if (!last || last.open_time_ns < candle.open_time_ns) {
+      arr.push(candle);
+    } else {
+      const idx = arr.findIndex(c => c.open_time_ns === candle.open_time_ns);
+      if (idx >= 0) arr[idx] = candle;
+      else {
+        arr.push(candle);
+        arr.sort((a, b) => a.open_time_ns - b.open_time_ns);
+      }
+    }
+    if (arr.length > 1000) arr.splice(0, arr.length - 1000);
+  }
+
+  function updateLiveCandlesFromTrade(t) {
+    for (const {ns} of INTERVALS) {
+      const bucket = Math.floor(t.ts / ns) * ns;
+      const closeTime = bucket + ns;
+      const arr = candlesByInterval.get(ns);
+      let c = arr.at(-1);
+      if (!c || c.open_time_ns !== bucket) c = arr.find(item => item.open_time_ns === bucket);
+      if (!c) {
+        c = {type: 'candle', market_id: t.market_id, interval_ns: ns, open_time_ns: bucket, close_time_ns: closeTime, open: t.price, high: t.price, low: t.price, close: t.price, volume: 0, quote_volume: 0, trade_count: 0};
+        arr.push(c);
+        if (arr.length > 1000) arr.splice(0, arr.length - 1000);
+      }
+      c.high = Math.max(c.high, t.price);
+      c.low = Math.min(c.low, t.price);
+      c.close = t.price;
+      c.volume += t.qty;
+      c.quote_volume += t.price * t.qty;
+      c.trade_count += 1;
+    }
+  }
+
+  function renderTables() {
+    $('trades').innerHTML = trades.slice(-12).reverse().map(t => `<tr><td>${Math.floor(t.ts/1e9)}</td><td>${t.price}</td><td>${t.qty}</td></tr>`).join('');
+    $('candles').innerHTML = selectedCandles().slice(-12).reverse().map(c => `<tr><td>${Math.floor(c.open_time_ns/1e9)}</td><td>${c.open}</td><td>${c.high}</td><td>${c.low}</td><td>${c.close}</td><td>${c.volume}</td></tr>`).join('');
+    $('orders').innerHTML = orders.slice(-12).reverse().map(o => `<tr><td>${o.source}</td><td>${o.order_type || 'LIMIT'}</td><td><span class="badge ${o.side === 'BUY' ? 'buy' : 'sell'}">${o.side}</span></td><td>${o.price}</td><td>${o.qty}</td><td>${o.filled}/${o.qty}</td></tr>`).join('');
+    const allAccounts = [...accounts.values()];
+    const coreAccounts = allAccounts.filter(a => a.role !== 'retail').sort((a, b) => a.user - b.user);
+    const retailSample = allAccounts.filter(a => a.role === 'retail').sort((a, b) => a.user - b.user).slice(0, 12);
+    const visibleAccounts = [...coreAccounts, ...retailSample];
+    const rows = visibleAccounts.map(a => `<tr><td>${a.user}</td><td>${roleBadge(a.role)}</td><td>${fmt(a.usdt_total)}</td><td>${fmt(a.sim_total)}</td></tr>`).join('');
+    $('accounts').innerHTML = rows;
+    $('accountTableTitle').textContent = `Accounts (${fmt(lastStats.accounts || allAccounts.length)} total; retail sample)`;
+    const player = accounts.get(PLAYER_ID);
+    $('playerBalance').innerHTML = player ? `
+      <tr><td>USDT</td><td>${fmt(player.usdt_total)}</td><td>${fmt(player.usdt_free)}</td><td>${fmt(player.usdt_locked)}</td></tr>
+      <tr><td>SIM</td><td>${fmt(player.sim_total)}</td><td>${fmt(player.sim_free)}</td><td>${fmt(player.sim_locked)}</td></tr>` : '';
+    if (player) {
+      const mark = lastPrice();
+      const initialUsdt = Number(player.initial_usdt || 1000000);
+      const initialSim = Number(player.initial_sim || 0);
+      const initialEquity = initialUsdt + initialSim * INITIAL_MARK_PRICE;
+      const equity = Number(player.usdt_total || 0) + Number(player.sim_total || 0) * mark;
+      const pnl = equity - initialEquity;
+      const pnlPct = initialEquity ? pnl / initialEquity * 100 : 0;
+      $('pEquity').textContent = fmt(Math.round(equity));
+      $('pPnl').textContent = fmt(Math.round(pnl));
+      $('pPnl').style.color = pnl >= 0 ? '#0f9f6e' : '#d64545';
+      $('pPnlPct').textContent = `${pnlPct.toFixed(3)}%`;
+      $('pPnlPct').style.color = pnl >= 0 ? '#0f9f6e' : '#d64545';
+    } else {
+      $('pEquity').textContent = '--'; $('pPnl').textContent = '--'; $('pPnlPct').textContent = '--';
+    }
+    $('candleTableTitle').textContent = `Recent ${selectedIntervalLabel()} Candles`;
+  }
+
+  function renderStats() {
+    $('mStep').textContent = fmt(lastStats.step || 0);
+    $('mLast').textContent = fmt(lastPrice());
+    $('mTrades').textContent = fmt(lastStats.trades || trades.length);
+    $('mCandles').textContent = fmt(lastStats.candles ?? selectedCandles().length);
+    $('mRejected').textContent = fmt(lastStats.rejected || 0);
+    $('mRss').textContent = fmt(lastStats.rss_kb || 0);
+    $('mAccounts').textContent = fmt(lastStats.accounts || accounts.size || 0);
+    $('mStored').textContent = fmt(lastStore.total_events || 0);
+    $('priceLabel').textContent = `last: ${$('mLast').textContent}`;
+  }
+
+  function applyEvent(obj) {
+    let needsChart = false;
+    let needsStats = false;
+    let needsTables = false;
+    if (obj.type === 'trade') {
+      trades.push(obj);
+      if (trades.length > 200) trades.splice(0, trades.length - 200);
+      if (obj.buyer === PLAYER_ID) markers.push({ts: obj.ts, price: obj.price, side: 'BUY'});
+      if (obj.seller === PLAYER_ID) markers.push({ts: obj.ts, price: obj.price, side: 'SELL'});
+      if (markers.length > 400) markers.splice(0, markers.length - 400);
+      lastStats.last_price = obj.price;
+      updateLiveCandlesFromTrade(obj);
+      needsChart = true;
+      needsStats = true;
+      needsTables = true;
+    } else if (obj.type === 'candle') {
+      upsertCandle(obj);
+      needsChart = true;
+      needsStats = true;
+      needsTables = true;
+    } else if (obj.type === 'stats') {
+      lastStats = obj;
+      if (!document.activeElement || document.activeElement.id !== 'orderPrice') $('orderPrice').value = lastPrice();
+      needsStats = true;
+    } else if (obj.type === 'account') {
+      accounts.set(Number(obj.user), {...accounts.get(Number(obj.user)), ...obj});
+      needsTables = true;
+    } else if (obj.type === 'user') {
+      accounts.set(Number(obj.user), {...accounts.get(Number(obj.user)), ...obj});
+      needsTables = true;
+    } else if (obj.type === 'order') {
+      orders.push(obj);
+      if (orders.length > 80) orders.splice(0, orders.length - 80);
+      const msg = `${obj.source} ${obj.order_type || 'LIMIT'} ${obj.side} ${obj.qty} @ ${obj.price}: ${obj.accepted ? 'accepted' : 'rejected'} filled ${obj.filled}`;
+      setOrderMessage(msg, obj.accepted ? 'ok' : 'error');
+      needsTables = true;
+    } else if (obj.type === 'status' && obj.running === false) {
+      setStatus('Stopped', '');
+      needsStats = true;
+    }
+    return {chart: needsChart, stats: needsStats, tables: needsTables};
+  }
+
+  function handleEvent(obj) {
+    if (obj.type === 'batch') {
+      lastStore = obj.store || lastStore;
+      let needsChart = false;
+      let needsStats = true;
+      let needsTables = false;
+      for (const event of obj.events || []) {
+        const dirty = applyEvent(event);
+        needsChart = needsChart || dirty.chart;
+        needsStats = needsStats || dirty.stats;
+        needsTables = needsTables || dirty.tables;
+      }
+      requestRender({chart: needsChart, stats: needsStats, tables: needsTables});
+      return;
+    }
+    requestRender(applyEvent(obj));
+  }
+
+  function setOrderMessage(text, cls) {
+    const el = $('orderMessage');
+    el.textContent = text;
+    el.className = 'message ' + (cls || '');
+  }
+
+  function start() {
+    if (source) source.close();
+    if (tableTimer) { clearTimeout(tableTimer); tableTimer = null; }
+    renderQueued = false; chartDirty = false; statsDirty = false; tablesDirty = false; lastTableRender = 0;
+    for (const arr of candlesByInterval.values()) arr.length = 0;
+    trades.length = 0; markers.length = 0; orders.length = 0; accounts.clear(); lastStats = {}; lastStore = {};
+    resetChartView(); renderTables(); renderStats();
+    const params = new URLSearchParams({
+      steps: $('steps').value || '0',
+      sleep_ms: $('sleepMs').value || '50',
+      speed_x: $('speedX').value || '0',
+      seed: $('seed').value || '42',
+      restart: '1'
+    });
+    source = new EventSource('/events?' + params.toString());
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    setStatus('Live', 'live');
+    source.onmessage = ev => { try { handleEvent(JSON.parse(ev.data)); } catch (e) { console.error(e); } };
+    source.onerror = () => { setStatus('Connection lost', 'error'); stop(false); };
+  }
+
+  async function stop(sendStop = true) {
+    if (source) source.close();
+    source = null;
+    if (sendStop) await fetch('/api/stop', {method: 'POST'}).catch(() => {});
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    if (!statusEl.classList.contains('error')) setStatus('Stopped', '');
+  }
+
+  function updateOrderInputs() {
+    const isMarket = $('orderType').value === 'MARKET';
+    $('orderPrice').disabled = isMarket;
+    $('orderVolBps').disabled = !isMarket;
+  }
+
+  async function sendOrder(side, price, qty, orderType = 'LIMIT', volatilityBps = 0) {
+    try {
+      const payload = {user: PLAYER_ID, side, order_type: orderType, qty: Number(qty), volatility_bps: Number(volatilityBps)};
+      if (orderType === 'LIMIT') payload.price = Number(price);
+      const res = await fetch('/api/order', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'order failed');
+      const pxText = orderType === 'MARKET' ? `vol ${volatilityBps} bps` : `@ ${price}`;
+      setOrderMessage(`Submitted ${orderType} ${side} ${qty} ${pxText}`, 'ok');
+    } catch (err) {
+      setOrderMessage(String(err.message || err), 'error');
+    }
+  }
+
+  $('intervalSelect').addEventListener('change', () => { resetChartView(); renderTables(); });
+  $('resetView').addEventListener('click', resetChartView);
+  canvas.addEventListener('pointerdown', beginChartDrag);
+  canvas.addEventListener('pointermove', moveChartDrag);
+  canvas.addEventListener('pointerup', endChartDrag);
+  canvas.addEventListener('pointercancel', endChartDrag);
+  canvas.addEventListener('wheel', zoomChart, {passive: false});
+  canvas.addEventListener('dblclick', resetChartView);
+  $('orderType').addEventListener('change', updateOrderInputs);
+  $('submitOrder').addEventListener('click', () => sendOrder($('orderSide').value, $('orderPrice').value, $('orderQty').value, $('orderType').value, $('orderVolBps').value));
+  $('quickBuy').addEventListener('click', () => sendOrder('BUY', Math.max(1, Math.round(lastPrice() + 20)), $('orderQty').value, 'LIMIT', 0));
+  $('quickSell').addEventListener('click', () => sendOrder('SELL', Math.max(1, Math.round(lastPrice() - 20)), $('orderQty').value, 'LIMIT', 0));
+  $('marketBuy').addEventListener('click', () => sendOrder('BUY', 0, $('orderQty').value, 'MARKET', $('orderVolBps').value));
+  $('marketSell').addEventListener('click', () => sendOrder('SELL', 0, $('orderQty').value, 'MARKET', $('orderVolBps').value));
+  startBtn.addEventListener('click', start);
+  stopBtn.addEventListener('click', () => stop(true));
+  window.addEventListener('resize', resize);
+  updateOrderInputs();
+  resize();
+  start();
+})();
+</script>
+</body>
+</html>

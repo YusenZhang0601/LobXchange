@@ -1,0 +1,13 @@
+{
+  "scenario": "mean_reversion_stabilizer",
+  "seed": 45,
+  "agent_count": 100,
+  "steps": 100,
+  "agents": {
+    "static_market_maker": 0.45,
+    "noise_trader": 0.20,
+    "momentum_follower": 0.20,
+    "mean_reverter": 0.15,
+    "whale_sweeper": 0.0
+  }
+}

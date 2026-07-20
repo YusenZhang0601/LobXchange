@@ -1,0 +1,19 @@
+{
+  "accepted_orders": 1319,
+  "agent_count": 15,
+  "agent_types": {
+    "market_maker": 4,
+    "mean_reversion": 2,
+    "momentum": 2,
+    "noise_trader": 6,
+    "whale_sweeper": 1
+  },
+  "final_best_ask": 100,
+  "final_best_bid": 98,
+  "final_mid_price": 99.0,
+  "mean_spread": 1.98,
+  "rejected_orders": 177,
+  "seed": 42,
+  "steps": 100,
+  "trade_count": 411
+}

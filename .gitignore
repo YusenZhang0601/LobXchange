@@ -1,0 +1,16 @@
+build/
+build-*/
+build-fincept/
+artifacts/
+bench-results/
+gmon.out
+perf.data
+perf.data.old
+**/__pycache__/
+python/lobx/__pycache__/
+.pytest_cache/
+.venv/
+.DS_Store
+snapshots/
+.agents/
+.codex/

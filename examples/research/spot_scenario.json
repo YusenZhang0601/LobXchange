@@ -1,0 +1,54 @@
+{
+  "seed": 42,
+  "ticks": 100,
+  "market_symbol": "BTC-USDT",
+  "bots": [
+    {
+      "user": 1,
+      "name": "mm",
+      "strategy_type": "market_maker",
+      "latency": {
+        "order": 1,
+        "cancel": 1,
+        "market_data": 5,
+        "private_data": 3
+      },
+      "params": {
+        "bid_px": 99,
+        "ask_px": 101,
+        "qty": 1
+      }
+    },
+    {
+      "user": 2,
+      "name": "taker",
+      "strategy_type": "taker_sweep",
+      "latency": {
+        "order": 2,
+        "cancel": 1,
+        "market_data": 5,
+        "private_data": 3
+      },
+      "params": {
+        "side": 0,
+        "target_qty": 1,
+        "limit_price": 101,
+        "max_avg_price": 101
+      }
+    },
+    {
+      "user": 3,
+      "name": "noise",
+      "strategy_type": "noise_trader",
+      "latency": {
+        "order": 3,
+        "cancel": 2,
+        "market_data": 5,
+        "private_data": 3
+      },
+      "params": {
+        "seed": 7
+      }
+    }
+  ]
+}

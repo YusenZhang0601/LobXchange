@@ -1,0 +1,14 @@
+{
+  "params": [
+    {
+      "bot_name": "mm",
+      "param_name": "bid_px",
+      "values": [98, 99]
+    },
+    {
+      "bot_name": "mm",
+      "param_name": "ask_px",
+      "values": [101, 102]
+    }
+  ]
+}
