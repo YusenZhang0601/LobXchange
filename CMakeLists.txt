@@ -354,7 +354,11 @@ target_link_libraries(lobx_bench_events PRIVATE lobx_core)
 add_executable(lobx_bench_mesa_agent_sim cpp/bench/bench_mesa_agent_sim.cpp)
 target_link_libraries(lobx_bench_mesa_agent_sim PRIVATE lobx_core)
 
+add_executable(lobx_bench_no_snapshot cpp/bench/bench_no_snapshot.cpp)
+target_link_libraries(lobx_bench_no_snapshot PRIVATE lobx_core)
+
 add_executable(lobx_research_runner cpp/tools/lobx_research_runner.cpp)
+
 target_link_libraries(lobx_research_runner PRIVATE lobx_core)
 
 enable_testing()

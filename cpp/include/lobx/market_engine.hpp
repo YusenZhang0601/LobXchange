@@ -303,7 +303,7 @@ private:
   void append_adl_required_event(UserId user, Amount bad_debt_amount, Amount insurance_paid, lob::Timestamp ts, std::vector<PendingEvent>& pending_events) const;
   bool release_user_orders(UserId user);
   bool can_release_order_lock(OrderId order_id) const;
-  bool purge_invalid_reduce_only_orders(const OrderRequest& req, std::vector<PendingEvent>& pending_events);
+  bool purge_invalid_reduce_only_orders(const OrderRequest& req, std::vector<PendingEvent>& pending_events, const std::function<void()>& ensure_snapshot_fn = nullptr);
   Snapshot make_snapshot() const;
   void restore_snapshot(const Snapshot& snapshot);
   SubmitSnapshot make_submit_snapshot() const;

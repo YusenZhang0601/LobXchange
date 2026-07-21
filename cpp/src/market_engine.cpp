@@ -1072,7 +1072,7 @@ SimulatedFill MarketEngine::simulate_fill(const OrderRequest& req) const {
   return result;
 }
 
-bool MarketEngine::purge_invalid_reduce_only_orders(const OrderRequest& req, std::vector<PendingEvent>& pending_events) {
+bool MarketEngine::purge_invalid_reduce_only_orders(const OrderRequest& req, std::vector<PendingEvent>& pending_events, const std::function<void()>& ensure_snapshot_fn) {
   if (market_.type != MarketType::Perpetual || !positions_) return true;
   std::vector<OrderId> invalid;
   for (const auto& kv : open_) {
@@ -1083,6 +1083,9 @@ bool MarketEngine::purge_invalid_reduce_only_orders(const OrderRequest& req, std
     if (positions_->reduce_only_would_increase(order.user, market_.id, order.side, order.leaves_qty)) {
       invalid.push_back(order.id);
     }
+  }
+  if (!invalid.empty() && ensure_snapshot_fn) {
+    ensure_snapshot_fn();
   }
   for (const OrderId id : invalid) {
     PendingEvent event{};
@@ -1652,22 +1655,6 @@ SubmitResult MarketEngine::submit_market(const OrderRequest& req, lob::Tick prot
 SubmitResult MarketEngine::submit_limit(const OrderRequest& req) {
   SubmitResult result{};
   std::vector<PendingEvent> pending_events;
-  const SubmitSnapshot snapshot = make_submit_snapshot();
-  ScalarMapUndo scalar_undo;
-  struct ScalarUndoScope {
-    MarketEngine& engine;
-    ScalarMapUndo* previous{nullptr};
-
-    ScalarUndoScope(MarketEngine& engine_ref, ScalarMapUndo& undo)
-        : engine(engine_ref), previous(engine_ref.active_scalar_undo_) {
-      engine.active_scalar_undo_ = &undo;
-    }
-
-    ~ScalarUndoScope() {
-      engine.active_scalar_undo_ = previous;
-    }
-  } scalar_undo_scope{*this, scalar_undo};
-  (void)scalar_undo_scope;
 
   bool inserted_seen_order_id = false;
   auto mark_seen_order_id = [&]() {
@@ -1681,8 +1668,37 @@ SubmitResult MarketEngine::submit_limit(const OrderRequest& req) {
       inserted_seen_order_id = false;
     }
   };
+
+  struct ScalarUndoScope {
+    MarketEngine& engine;
+    ScalarMapUndo* previous{nullptr};
+
+    ScalarUndoScope(MarketEngine& engine_ref, ScalarMapUndo& undo)
+        : engine(engine_ref), previous(engine_ref.active_scalar_undo_) {
+      engine.active_scalar_undo_ = &undo;
+    }
+
+    ~ScalarUndoScope() {
+      engine.active_scalar_undo_ = previous;
+    }
+  };
+
+  std::optional<SubmitSnapshot> snapshot;
+  ScalarMapUndo scalar_undo;
+  std::optional<ScalarUndoScope> scalar_undo_scope;
+  auto ensure_snapshot = [&]() -> const SubmitSnapshot& {
+    if (!snapshot.has_value()) {
+      snapshot = make_submit_snapshot();
+      scalar_undo_scope.emplace(*this, scalar_undo);
+    }
+    return *snapshot;
+  };
+
+
   auto fail_after_mutation = [&](RejectCode code, const std::string& reason) -> SubmitResult {
-    restore_submit_snapshot(snapshot);
+    if (snapshot.has_value()) {
+      restore_submit_snapshot(*snapshot);
+    }
     restore_scalar_map_undo(scalar_undo);
     rollback_seen_order_id_if_needed();
     SubmitResult failed{};
@@ -1693,15 +1709,24 @@ SubmitResult MarketEngine::submit_limit(const OrderRequest& req) {
     return failed;
   };
 
+  auto fail_pure_read = [&](RejectCode code, const std::string& reason) -> SubmitResult {
+    if (snapshot.has_value()) {
+      return fail_after_mutation(code, reason);
+    }
+    SubmitResult failed{};
+    failed.accepted = false;
+    failed.code = code;
+    failed.reason = reason;
+    append_reject_event(req, code, reason);
+    return failed;
+  };
+
   if (req.user == kDedicatedFeeAccountUser) {
-    result.accepted = false;
-    result.code = RejectCode::UnsupportedOrderType;
-    result.reason = "system fee account cannot submit orders";
-    append_reject_event(req, result.code, result.reason);
-    return result;
+    return fail_pure_read(RejectCode::UnsupportedOrderType, "system fee account cannot submit orders");
   }
 
-  if (!purge_invalid_reduce_only_orders(req, pending_events)) {
+  if (!purge_invalid_reduce_only_orders(req, pending_events, [&]() { ensure_snapshot(); })) {
+    ensure_snapshot();
     return fail_after_mutation(RejectCode::InternalError, "failed to purge invalid reduce-only order");
   }
 
@@ -1711,7 +1736,7 @@ SubmitResult MarketEngine::submit_limit(const OrderRequest& req) {
   const int user_leverage = std::max(1, std::min(requested_leverage, effective_max_leverage(req.user, projected_notional)));
   const RiskDecision decision = risk_.check_limit_order(req, market_, ledger_, positions_, user_leverage, best_bid(), best_ask(), duplicate);
   if (!decision.accepted) {
-    return fail_after_mutation(decision.code, decision.reason);
+    return fail_pure_read(decision.code, decision.reason);
   }
 
   if ((req.flags & lob::FOK) != 0u && available_to_fill(req) < req.qty) {
@@ -1729,13 +1754,17 @@ SubmitResult MarketEngine::submit_limit(const OrderRequest& req) {
   }
 
   if (!has_loss_capacity(req, user_leverage)) {
-    return fail_after_mutation(RejectCode::InsufficientBalance, "insufficient margin to realize loss");
+    return fail_pure_read(RejectCode::InsufficientBalance, "insufficient margin to realize loss");
   }
+
+  ensure_snapshot();
 
   Result lock_result = ledger_.lock(req.user, decision.lock_asset, decision.lock_amount);
   if (!lock_result.ok) {
     return fail_after_mutation(lock_result.code, lock_result.reason);
   }
+
+
 
   mark_seen_order_id();
   open_[req.order_id] = OpenOrder{req.order_id,
