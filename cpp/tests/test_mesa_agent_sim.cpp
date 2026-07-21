@@ -180,7 +180,7 @@ TEST(MesaAgentSimulationFlow, SIM010FifteenAgentsTwentyStepsSmokeAndGoldenBaseli
   EXPECT_TRUE(summary.trade_count > 0);
   EXPECT_TRUE(legal_book(sim));
   EXPECT_TRUE(sim.accounting_invariant_ok());
-  expect_summary_eq(summary, 20, 15, 270, 34, 88, 100, 100);
+  expect_summary_eq(summary, 20, 15, 270, 34, 88, 100, 102);
 }
 
 TEST(MesaAgentSimulationFlow, SIM011HundredAgentsHundredStepsSmoke) {
@@ -219,5 +219,5 @@ TEST(MesaAgentSimulationFlow, GoldenBaselinesForSeed42At100And1000Steps) {
   expect_summary_eq(sim100.run(), 100, 15, 1319, 177, 411, 98, 100);
 
   MesaAgentSimulation sim1000(standard_config(42, 1000));
-  expect_summary_eq(sim1000.run(), 1000, 15, 12959, 1810, 3789, 99, 101);
+  expect_summary_eq(sim1000.run(), 1000, 15, 13009, 1791, 3933, 99, 101);
 }

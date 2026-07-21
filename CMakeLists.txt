@@ -327,6 +327,10 @@ add_lobx_test_target(lobx_perp_trigger_orders_tests
   cpp/tests/perp_trigger_orders.cpp
 )
 
+add_lobx_test_target(lobx_concurrency_tests
+  cpp/tests/concurrency/concurrent_market_engine_test.cpp
+)
+
 add_executable(lobx_simulator cpp/apps/lobx_simulator.cpp)
 target_link_libraries(lobx_simulator PRIVATE lobx_core)
 
@@ -405,6 +409,7 @@ add_test(NAME lobx_perp_simulate_fill_tests COMMAND lobx_perp_simulate_fill_test
 add_test(NAME lobx_perp_insurance_adl_tests COMMAND lobx_perp_insurance_adl_tests)
 add_test(NAME lobx_perp_order_types_tests COMMAND lobx_perp_order_types_tests)
 add_test(NAME lobx_perp_trigger_orders_tests COMMAND lobx_perp_trigger_orders_tests)
+add_test(NAME lobx_concurrency_tests COMMAND lobx_concurrency_tests "EXPLICIT_RUN_ONLY")
 
 set_tests_properties(lobx_unit_tests PROPERTIES LABELS "unit")
 set_tests_properties(lobx_regression_tests PROPERTIES LABELS "regression;foundation;atomicity;market_boundary")
@@ -446,3 +451,4 @@ set_tests_properties(lobx_perp_simulate_fill_tests PROPERTIES LABELS "correctnes
 set_tests_properties(lobx_perp_insurance_adl_tests PROPERTIES LABELS "correctness;perp;insurance;bad_debt;adl;liquidation")
 set_tests_properties(lobx_perp_order_types_tests PROPERTIES LABELS "correctness;perp;market_order;order_types")
 set_tests_properties(lobx_perp_trigger_orders_tests PROPERTIES LABELS "correctness;perp;trigger;tp_sl")
+set_tests_properties(lobx_concurrency_tests PROPERTIES LABELS "concurrency;correctness;stress")
