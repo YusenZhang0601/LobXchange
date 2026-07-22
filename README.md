@@ -102,6 +102,7 @@ bash scripts/build_cmake.sh
 
 ## 文档
 
+- [项目接手与交接指南](docs/HANDOVER_GUIDE_CN.md)
 - [项目概况与架构](docs/PROJECT_OVERVIEW_CN.md)
 - [Web3 与加密货币微观市场交易者生态建模指南](docs/research_reports/web3_market_microstructure_research.md)
 - [CMake 编译指南](docs/BUILD_CN.md)

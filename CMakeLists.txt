@@ -152,6 +152,7 @@ add_lobx_test_target(lobx_integration_tests
   cpp/tests/integration/spot_matching_integration.cpp
   cpp/tests/integration/spot_settlement_integration.cpp
   cpp/tests/integration/perp_trading_integration.cpp
+  cpp/tests/integration/perp_liquidation_stress_test.cpp
   cpp/tests/integration/cancel_lifecycle_integration.cpp
   cpp/tests/integration/market_state_integration.cpp
   cpp/tests/integration/exchange_spot_consistency.cpp

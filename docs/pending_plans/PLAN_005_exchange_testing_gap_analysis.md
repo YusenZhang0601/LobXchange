@@ -16,9 +16,9 @@
 
 | 测试领域/步骤 | 现有测试文件与逻辑 | 是否属于重复测试？ | 审计结论 |
 | :--- | :--- | :--- | :--- |
-| **步骤一：并发竞争测试** | 目前没有任何 `std::thread` 或 `std::mutex` 相关的测试。 | ❌ **不重复** | **急需补充**。用于暴露当前引擎在读写并发时的锁争用与死锁隐患。 |
-| **步骤二：流动性空洞与强平坏账** | [perp_insurance_adl.cpp](file:///Users/mac/模拟交易所项目/cpp/tests/perp_insurance_adl.cpp) 仅静态测试了 `rank_adl_candidates()` 排序，未真正执行爆仓时的自动 ADL 持仓划转与对冲结算。 | ❌ **不重复** | **急需补充**。需在真空盘口（买单深度为 0）下验证强平失败触发 ADL 及坏账分摊时的资金守恒不变量。 |
-| **步骤三：标记价格操纵风控** | [perp_mark_price_unrealized_pnl.cpp](file:///Users/mac/模拟交易所项目/cpp/tests/perp_mark_price_unrealized_pnl.cpp) 仅测试了标记价格的静态计算公式，完全没有测试成交价被恶意拉抬时风控引擎对普通用户的拦截保护。 | ❌ **不重复** | **急需补充**。需构造价格操纵集成测试，验证风控引擎的防御性重估逻辑。 |
+| **步骤一：并发竞争测试** | 新增 [concurrent_market_engine_test.cpp](file:///Users/mac/模拟交易所项目/cpp/tests/concurrency/concurrent_market_engine_test.cpp)，建立多线程竞争崩溃基准。 | ❌ **不重复** | ✅ **[x] 已完成** |
+| **步骤二：流动性空洞与强平坏账** | 新增 [perp_liquidation_stress_test.cpp](file:///Users/mac/模拟交易所项目/cpp/tests/integration/perp_liquidation_stress_test.cpp)，验证 Depth=0 时 ADL 广播与资金 100% 守恒。 | ❌ **不重复** | ✅ **[x] 已完成** |
+| **步骤三：标记价格操纵风控** | [perp_mark_price_unrealized_pnl.cpp](file:///Users/mac/模拟交易所项目/cpp/tests/perp_mark_price_unrealized_pnl.cpp) 仅测试静态公式，缺失成交价恶意拉抬风控。 | ❌ **不重复** | **下一切入点**。需构造价格操纵集成测试，验证防御性重估。 |
 | **未来步骤：断线自撤 (COD)** | 底层撮合为纯内存计算，目前无任何网络链接、会话上下文或心跳定时器逻辑。 | ❌ **不重复（但目前不适用）** | **暂缓补充**。需等底层实现网络通信层/Mock 连接层后进行。 |
 | **未来步骤：混合保证金质押** | 底层每一市场固定绑定单一 `market.margin_asset`，尚不支持多币种质押和 Haircut 折价率。 | ❌ **不重复（但目前不适用）** | **暂缓补充**。需等底层实现统一账户/混合保证金结构后进行。 |
 | **未来步骤：逐仓与分级平仓** | 当前强平为粗暴的一次性全清，底层不支持 Isolated Margin 隔离账户和阶梯减仓逻辑。 | ❌ **不重复（但目前不适用）** | **暂缓补充**。需等底层实现分级平仓和 Isolated 模式后进行。 |
