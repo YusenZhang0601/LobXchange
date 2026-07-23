@@ -95,7 +95,7 @@ function(add_lobx_test_target target_name)
     cpp/tests/test_helpers/test_main.cpp
     ${ARGN}
   )
-  if("${target_name}" STREQUAL "lobx_regression_tests")
+  if("${target_name}" STREQUAL "lobx_regression_tests" OR "${target_name}" STREQUAL "lobx_integration_tests")
     target_link_libraries(${target_name} PRIVATE lobx_core_testing)
   else()
     target_link_libraries(${target_name} PRIVATE lobx_core)
@@ -154,6 +154,7 @@ add_lobx_test_target(lobx_integration_tests
   cpp/tests/integration/perp_trading_integration.cpp
   cpp/tests/integration/perp_liquidation_stress_test.cpp
   cpp/tests/integration/oracle_mark_price_protection_test.cpp
+  cpp/tests/integration/transaction_fault_recovery_integration_test.cpp
   cpp/tests/integration/cancel_lifecycle_integration.cpp
   cpp/tests/integration/market_state_integration.cpp
   cpp/tests/integration/exchange_spot_consistency.cpp

@@ -62,8 +62,8 @@ TEST(OracleMarkPriceProtection, ORACLE_MARK_002_ModeSwitchToLastPriceTriggersLiq
   expect_ok(f.submit(f.alice, 81004, lob::Side::Bid, 150, 10, lob::IOC, 2003));
   EXPECT_EQ(f.engine.last_trade_price(), 150);
 
-  // 2. 将标记价格模式切换为 LastPrice
-  expect_ok(f.engine.set_mark_price_mode(lobx::MarkPriceMode::LastPrice));
+  // 2. 将标记价格模式切换为 LastTrade
+  expect_ok(f.engine.set_mark_price_mode(lobx::MarkPriceMode::LastTrade));
 
   // 3. 断言风控重新评估后 Bob 可被强平，且强平顺利完成
   EXPECT_TRUE(f.engine.is_liquidatable(f.bob));
