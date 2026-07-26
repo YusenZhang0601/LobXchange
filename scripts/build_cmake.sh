@@ -12,7 +12,7 @@ cmake_args=(
   -DCMAKE_BUILD_TYPE="${BUILD_TYPE}"
 )
 
-if command -v ninja >/dev/null 2>&1; then
+if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]] && command -v ninja >/dev/null 2>&1; then
   cmake_args+=( -G Ninja )
 fi
 

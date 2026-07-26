@@ -1,5 +1,7 @@
 # PLAN_004: LobXChange 核心引擎与架构技术债重构路线图 (Technical Debt Refactoring Roadmap)
 
+> **当前状态（2026-07-26）**：第 1 项已在个人 PR 栈的旧基线上实现，但尚未合入作者 `main`，且不能替代作者新重构到位后的重新审计。其余条目仍是提案，不得据此自动实施。
+
 ## 概述与目标
 
 通过对 `LobXChange` 模拟交易所 C++ 核心引擎与 Python 仿真框架的深度走读，梳理出 10 项制约性能、吞吐量、并发安全性及健壮性的核心技术债。
@@ -16,11 +18,11 @@
 
 ## 技术债全景图 (Total Technical Debt Inventory)
 
-### 1. [x] 核心撮合热路径：全量状态快照深拷贝 (`make_submit_snapshot`)【已合入代码库并验证 100% 通过】
+### 1. [~] 核心撮合热路径：全量状态快照深拷贝 (`make_submit_snapshot`)【个人分支已实现，等待新基线复核】
 - **现象**：`MarketEngine::submit_limit` 中每处理一笔限价单，无条件调用 `make_submit_snapshot()` 对全盘口、账本 `AccountLedger` 和持仓 `PositionEngine` 进行深拷贝。
 - **影响**：单笔订单处理复杂度由 $O(\log N)$ 退化为 $O(N)$，高频/大盘口下吞吐量崩溃。
-- **重构方案**：在 `cpp/src/market_engine.cpp` 官方实现了路线 A（两阶段纯读预检 + 智能延迟快照）。
-- **实测结果**：在 SSH 远端工位 (`gongwei`) 上运行 `lobx_bench_exchange` 50,000 笔订单，TPS 从 2,174 升至 **2,619.85 TPS (+20.5% 净提升)**，P99 尾部延迟降至 1.78ms，最大卡顿暴降 105.5ms；且 40 大项 / 250 断言全量回归与资金守恒测试 **100% PASSED**。
+- **分支实现**：个人 PR 栈曾在 `cpp/src/market_engine.cpp` 实现路线 A（两阶段纯读预检 + 智能延迟快照）。
+- **历史实测**：在 SSH 远端工位 (`gongwei`) 上运行 `lobx_bench_exchange` 50,000 笔订单，曾记录 TPS 从 2,174 升至 **2,619.85 TPS (+20.5%)**，P99 尾部延迟为 1.78ms。该结果只对应当时分支与工位，不表示已合入作者仓库，也不是作者新重构的验证结果。
 
 
 

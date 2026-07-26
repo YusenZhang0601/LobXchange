@@ -17,9 +17,8 @@ LobXChange 是一个面向市场微观结构研究的单机交易所与多 Agent
 - 账户账本、冻结余额、风险检查、结算、手续费、持仓和清算相关测试。
 - 事件流、K 线和实时仿真输出。
 - 解耦的 `AgentRuntime + AgentAction + AgentContext` 架构。
-- 10 种内置与扩展算法机器人工位架构支持：
-  - 基础策略：`static_market_maker`, `noise_trader`, `momentum_follower`, `mean_reverter`, `whale_sweeper`
-  - 高级扩展：`grid_bot`, `funding_arbitrageur`, `liquidation_sniper`, `ofi_momentum`, `hawkes_panic`
+- 5 种已实现交易逻辑的内置策略：`static_market_maker`, `noise_trader`, `momentum_follower`, `mean_reverter`, `whale_sweeper`。
+- 5 种已注册但暂不产生交易动作的扩展工位：`grid_bot`, `funding_arbitrageur`, `liquidation_sniper`, `ofi_momentum`, `hawkes_panic`。
 - 固定延迟队列、Agent 私有状态、action/event trace。
 - price impact、PnL/accounting invariant 和 long diagnostic 实验。
 - CSV/JSON/JSONL 研究 bundle 与 pandas/matplotlib 可视化。
@@ -102,12 +101,12 @@ bash scripts/build_cmake.sh
 
 ## 文档
 
-- [项目接手与交接指南](docs/HANDOVER_GUIDE_CN.md)
+- [当前项目状态与维护交接](docs/HANDOVER_GUIDE_CN.md)
+- [实现状态](docs/IMPLEMENTATION_STATUS_CN.md)
 - [项目概况与架构](docs/PROJECT_OVERVIEW_CN.md)
 - [Web3 与加密货币微观市场交易者生态建模指南](docs/research_reports/web3_market_microstructure_research.md)
 - [CMake 编译指南](docs/BUILD_CN.md)
 - [使用指南](docs/USAGE_CN.md)
-- [GitHub 上传清单](docs/GITHUB_UPLOAD_CN.md)
 - [AgentRuntime 架构](docs/AGENT_RUNTIME_ARCHITECTURE_CN.md)
 - [价格冲击实验](docs/price_impact_experiments.md)
 - [长时间诊断实验](docs/diagnostic_experiments.md)

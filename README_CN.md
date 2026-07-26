@@ -4,6 +4,8 @@
 
 详细文档：
 
+- [当前项目状态与维护交接](docs/HANDOVER_GUIDE_CN.md)
+- [实现状态](docs/IMPLEMENTATION_STATUS_CN.md)
 - [项目概况与架构](docs/PROJECT_OVERVIEW_CN.md)
 - [CMake 编译指南](docs/BUILD_CN.md)
 - [使用指南](docs/USAGE_CN.md)

@@ -6,7 +6,7 @@
 - CMake 3.21 或更高。
 - GCC 11+ 或 Clang 14+，需要 C++20。
 - Ninja 可选；没有 Ninja 时可使用默认 Makefiles。
-- Python 3.10+ 仅用于 Python 工具和绘图，不是 C++ 内核的编译依赖。
+- Python 3.12+ 仅用于 Python 工具和绘图，不是 C++ 内核的编译依赖；版本下限以 `pyproject.toml` 为准。
 
 Ubuntu/WSL 可安装：
 
